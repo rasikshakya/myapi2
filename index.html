@@ -119,4 +119,113 @@
       async function deleteDriver(name) {
         if (!window.confirm(`Delete driver: ${name}?`)) return;
         try {
-          const
+          const res = await fetch(`${API_BASE}/drivers/${name}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${AUTH_TOKEN}` }
+          });
+          if (!res.ok) throw new Error("Delete failed");
+          showMessage("Driver removed.", "success");
+          loadDrivers();
+        } catch (err) { showMessage(err.message, "error"); }
+      }
+
+      const filteredDrivers = drivers.filter(d => 
+        d.driver_name.toLowerCase().includes(search.toLowerCase()) ||
+        d.country_of_origin.toLowerCase().includes(search.toLowerCase())
+      );
+
+      return (
+        <div className="container">
+          <div className="card">
+            <h1>🏎️ F1 Driver Manager</h1>
+            <div className="subtitle">Official Grid Registry | Authentication Active</div>
+          </div>
+
+          <div className="card">
+            <h2>{editingId ? `Editing: ${editingId}` : "Register New Driver"}</h2>
+            {message && <div className={`message ${messageType}`}>{message}</div>}
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid">
+                <div>
+                  <label>Full Driver Name (ID)</label>
+                  <input name="driver_name" value={form.driver_name} onChange={handleInputChange} placeholder="Lewis Hamilton" disabled={!!editingId} required />
+                </div>
+                <div>
+                  <label>First Name</label>
+                  <input name="first_name" value={form.first_name} onChange={handleInputChange} placeholder="Lewis" required />
+                </div>
+                <div>
+                  <label>Last Name</label>
+                  <input name="last_name" value={form.last_name} onChange={handleInputChange} placeholder="Hamilton" required />
+                </div>
+                <div>
+                  <label>Country</label>
+                  <input name="country_of_origin" value={form.country_of_origin} onChange={handleInputChange} placeholder="United Kingdom" required />
+                </div>
+                <div>
+                  <label>Birthdate</label>
+                  <input type="date" name="birthdate" value={form.birthdate} onChange={handleInputChange} required />
+                </div>
+              </div>
+
+              <div className="toolbar">
+                <button className="btn-primary" type="submit">{editingId ? "Update Driver" : "Add to Grid"}</button>
+                <button className="btn-secondary" type="button" onClick={resetForm}>Clear</button>
+              </div>
+            </form>
+          </div>
+
+          <div className="card">
+            <div className="topbar">
+              <div className="count-box">
+                <h2 style={{margin: 0}}>Current Grid</h2>
+                <span className="badge">{filteredDrivers.length} Drivers</span>
+              </div>
+              <input 
+                style={{maxWidth: '300px'}}
+                type="text" 
+                placeholder="Search by name or country..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+              />
+            </div>
+
+            {loading ? <div className="empty">Fetching data from paddock...</div> : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Driver ID</th>
+                    <th>Name</th>
+                    <th>Origin</th>
+                    <th>Birthdate</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDrivers.map(d => (
+                    <tr key={d.driver_name}>
+                      <td><strong>{d.driver_name}</strong></td>
+                      <td>{d.first_name} {d.last_name}</td>
+                      <td>{d.country_of_origin}</td>
+                      <td>{d.birthdate}</td>
+                      <td>
+                        <div className="actions">
+                          <button className="btn-warning" onClick={() => { setEditingId(d.driver_name); setForm(d); window.scrollTo(0,0); }}>Edit</button>
+                          <button className="btn-danger" onClick={() => deleteDriver(d.driver_name)}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
