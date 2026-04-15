@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>President UI</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      max-width: 900px;
+    }
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+    form {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    input {
+      padding: 10px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    .message {
+      margin: 12px 0;
+      padding: 10px;
+      border-radius: 6px;
+      background: #f3f3f3;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    //const API_BASE = "http://127.0.0.1:8000";
+    // For Render, change to:
+    const API_BASE = "https://myapi1-pz44.onrender.com";
+
+    function App() {
+      const [presidents, setPresidents] = React.useState([]);
+      const [message, setMessage] = React.useState("");
+      const [form, setForm] = React.useState({
+        firstname: "",
+        lastname: "",
+        birthdate: ""
+      });
+      const [editingId, setEditingId] = React.useState(null);
+
+      React.useEffect(() => {
+        loadPresidents();
+      }, []);
+
+      async function loadPresidents() {
+        try {
+          const res = await fetch(`${API_BASE}/presidents`);
+          if (!res.ok) throw new Error("Failed to load presidents");
+          const data = await res.json();
+          setPresidents(data);
+        } catch (err) {
+          setMessage(err.message);
+        }
+      }
+
+      function handleChange(e) {
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: value }));
+      }
+
+      function resetForm() {
+        setForm({
+          firstname: "",
+          lastname: "",
+          birthdate: ""
+        });
+        setEditingId(null);
+      }
+
+      async function handleSubmit(e) {
+        e.preventDefault();
+
+        const payload = {
+          firstname: form.firstname,
+          lastname: form.lastname,
+          birthdate: form.birthdate || null
+        };
+
+        try {
+          let res;
+
+          if (editingId) {
+            res = await fetch(`${API_BASE}/presidents/${editingId}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(payload)
+            });
+          } else {
+            res = await fetch(`${API_BASE}/presidents`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(payload)
+            });
+          }
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.detail || "Request failed");
+          }
+
+          setMessage(editingId ? "President updated" : "President created");
+          resetForm();
+          loadPresidents();
+        } catch (err) {
+          setMessage(err.message);
+        }
+      }
+
+      function startEdit(president) {
+        setEditingId(president.id);
+        setForm({
+          firstname: president.firstname || "",
+          lastname: president.lastname || "",
+          birthdate: president.birthdate || ""
+        });
+      }
+
+      async function handleDelete(id) {
+        const confirmed = window.confirm("Delete this president?");
+        if (!confirmed) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/presidents/${id}`, {
+            method: "DELETE"
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.detail || "Delete failed");
+          }
+
+          setMessage("President deleted");
+          loadPresidents();
+        } catch (err) {
+          setMessage(err.message);
+        }
+      }
+
+      return (
+        <div>
+          <h1>President UI </h1>
+
+          <p>Backend: {API_BASE}</p>
+
+          {message && <div className="message">{message}</div>}
+
+          <h2>{editingId ? "Edit President" : "Add President"}</h2>
+
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              name="firstname"
+              placeholder="First name"
+              value={form.firstname}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              type="text"
+              name="lastname"
+              placeholder="Last name"
+              value={form.lastname}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              type="date"
+              name="birthdate"
+              value={form.birthdate}
+              onChange={handleChange}
+            />
+
+            <div className="actions">
+              <button type="submit">
+                {editingId ? "Update" : "Create"}
+              </button>
+              <button type="button" onClick={resetForm}>
+                Clear
+              </button>
+            </div>
+          </form>
+
+          <h2>Presidents</h2>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Birthdate</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {presidents.length === 0 ? (
+                <tr>
+                  <td colSpan="5">No records found</td>
+                </tr>
+              ) : (
+                presidents.map(president => (
+                  <tr key={president.id}>
+                    <td>{president.id}</td>
+                    <td>{president.firstname}</td>
+                    <td>{president.lastname}</td>
+                    <td>{president.birthdate || ""}</td>
+                    <td>
+                      <div className="actions">
+                        <button onClick={() => startEdit(president)}>
+                          Edit
+                        </button>
+                        <button onClick={() => handleDelete(president.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
