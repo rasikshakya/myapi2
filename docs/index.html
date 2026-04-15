@@ -3,54 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>President UI</title>
+  <title>F1 Driver Registry</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 30px;
-      max-width: 900px;
+      max-width: 1000px;
+      background-color: #f9f9f9;
     }
-    h1, h2 {
-      margin-bottom: 10px;
-    }
+    h1, h2 { color: #e10600; } /* F1 Red */
     form {
       display: grid;
-      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
       margin-bottom: 24px;
-      padding: 16px;
-      border: 1px solid #ccc;
+      padding: 20px;
+      border: 1px solid #ddd;
       border-radius: 8px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    input {
-      padding: 10px;
-      font-size: 14px;
-    }
+    .full-width { grid-column: span 2; }
+    input { padding: 12px; border: 1px solid #ccc; border-radius: 4px; }
     button {
-      padding: 10px 14px;
+      padding: 10px 18px;
       cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: 0.3s;
     }
+    .btn-primary { background-color: #e10600; color: white; }
+    .btn-secondary { background-color: #333; color: white; }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 16px;
+      background: white;
     }
     th, td {
-      border: 1px solid #ccc;
-      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      padding: 12px;
       text-align: left;
     }
-    .actions {
-      display: flex;
-      gap: 8px;
-    }
+    th { background-color: #1f1f1f; color: white; }
+    .actions { display: flex; gap: 8px; }
     .message {
       margin: 12px 0;
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
-      background: #f3f3f3;
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
     }
   </style>
 </head>
@@ -58,30 +64,34 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    //const API_BASE = "http://127.0.0.1:8000";
-    // For Render, change to:
     const API_BASE = "https://myapi1-pz44.onrender.com";
+    // IMPORTANT: Ensure this matches the MY_API_KEY in your Render environment variables
+    const AUTH_KEY = "your-secret-key-here"; 
 
     function App() {
-      const [presidents, setPresidents] = React.useState([]);
+      const [drivers, setDrivers] = React.useState([]);
       const [message, setMessage] = React.useState("");
       const [form, setForm] = React.useState({
-        firstname: "",
-        lastname: "",
+        driver_name: "",
+        first_name: "",
+        last_name: "",
+        country_of_origin: "",
         birthdate: ""
       });
-      const [editingId, setEditingId] = React.useState(null);
+      const [isEditing, setIsEditing] = React.useState(false);
 
       React.useEffect(() => {
-        loadPresidents();
+        loadDrivers();
       }, []);
 
-      async function loadPresidents() {
+      async function loadDrivers() {
         try {
-          const res = await fetch(`${API_BASE}/presidents`);
-          if (!res.ok) throw new Error("Failed to load presidents");
+          const res = await fetch(`${API_BASE}/drivers`, {
+            headers: { "X-API-Key": AUTH_KEY }
+          });
+          if (!res.ok) throw new Error("Failed to load grid data");
           const data = await res.json();
-          setPresidents(data);
+          setDrivers(data);
         } catch (err) {
           setMessage(err.message);
         }
@@ -94,83 +104,58 @@
 
       function resetForm() {
         setForm({
-          firstname: "",
-          lastname: "",
+          driver_name: "",
+          first_name: "",
+          last_name: "",
+          country_of_origin: "",
           birthdate: ""
         });
-        setEditingId(null);
+        setIsEditing(false);
       }
 
       async function handleSubmit(e) {
         e.preventDefault();
-
-        const payload = {
-          firstname: form.firstname,
-          lastname: form.lastname,
-          birthdate: form.birthdate || null
-        };
-
         try {
-          let res;
-
-          if (editingId) {
-            res = await fetch(`${API_BASE}/presidents/${editingId}`, {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(payload)
-            });
-          } else {
-            res = await fetch(`${API_BASE}/presidents`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(payload)
-            });
-          }
+          const method = isEditing ? "PATCH" : "POST";
+          const url = isEditing ? `${API_BASE}/drivers/${form.driver_name}` : `${API_BASE}/drivers`;
+          
+          const res = await fetch(url, {
+            method: method,
+            headers: { 
+                "Content-Type": "application/json",
+                "X-API-Key": AUTH_KEY 
+            },
+            body: JSON.stringify(form)
+          });
 
           const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Transaction failed");
 
-          if (!res.ok) {
-            throw new Error(data.detail || "Request failed");
-          }
-
-          setMessage(editingId ? "President updated" : "President created");
+          setMessage(isEditing ? "Driver updated!" : "Driver added to grid!");
           resetForm();
-          loadPresidents();
+          loadDrivers();
         } catch (err) {
           setMessage(err.message);
         }
       }
 
-      function startEdit(president) {
-        setEditingId(president.id);
-        setForm({
-          firstname: president.firstname || "",
-          lastname: president.lastname || "",
-          birthdate: president.birthdate || ""
-        });
+      function startEdit(driver) {
+        setIsEditing(true);
+        setForm(driver);
       }
 
-      async function handleDelete(id) {
-        const confirmed = window.confirm("Delete this president?");
-        if (!confirmed) return;
+      async function handleDelete(driver_name) {
+        if (!window.confirm(`Retire ${driver_name} from the registry?`)) return;
 
         try {
-          const res = await fetch(`${API_BASE}/presidents/${id}`, {
-            method: "DELETE"
+          const res = await fetch(`${API_BASE}/drivers/${driver_name}`, {
+            method: "DELETE",
+            headers: { "X-API-Key": AUTH_KEY }
           });
 
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.detail || "Delete failed");
-          }
-
-          setMessage("President deleted");
-          loadPresidents();
+          if (!res.ok) throw new Error("Delete failed");
+          setMessage("Driver removed");
+          loadDrivers();
         } catch (err) {
           setMessage(err.message);
         }
@@ -178,83 +163,88 @@
 
       return (
         <div>
-          <h1>President UI </h1>
-
-          <p>Backend: {API_BASE}</p>
+          <h1>🏎️ F1 Driver Registry</h1>
+          <p>Connected to: <code>{API_BASE}</code></p>
 
           {message && <div className="message">{message}</div>}
 
-          <h2>{editingId ? "Edit President" : "Add President"}</h2>
-
+          <h2>{isEditing ? "Modify Driver Details" : "Register New Driver"}</h2>
           <form onSubmit={handleSubmit}>
             <input
               type="text"
-              name="firstname"
-              placeholder="First name"
-              value={form.firstname}
+              name="driver_name"
+              placeholder="Unique Driver ID (e.g. LewisHamilton)"
+              value={form.driver_name}
               onChange={handleChange}
+              disabled={isEditing}
               required
             />
-
             <input
               type="text"
-              name="lastname"
-              placeholder="Last name"
-              value={form.lastname}
+              name="country_of_origin"
+              placeholder="Country"
+              value={form.country_of_origin}
               onChange={handleChange}
               required
             />
-
+            <input
+              type="text"
+              name="first_name"
+              placeholder="First Name"
+              value={form.first_name}
+              onChange={handleChange}
+              required
+            />
+            <input
+              type="text"
+              name="last_name"
+              placeholder="Last Name"
+              value={form.last_name}
+              onChange={handleChange}
+              required
+            />
             <input
               type="date"
               name="birthdate"
               value={form.birthdate}
               onChange={handleChange}
+              required
+              className="full-width"
             />
-
-            <div className="actions">
-              <button type="submit">
-                {editingId ? "Update" : "Create"}
+            <div className="actions full-width">
+              <button type="submit" className="btn-primary">
+                {isEditing ? "Save Changes" : "Add Driver"}
               </button>
-              <button type="button" onClick={resetForm}>
-                Clear
+              <button type="button" onClick={resetForm} className="btn-secondary">
+                Cancel
               </button>
             </div>
           </form>
 
-          <h2>Presidents</h2>
-
+          <h2>Current Grid</h2>
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>First Name</th>
-                <th>Last Name</th>
+                <th>Name</th>
+                <th>Country</th>
                 <th>Birthdate</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {presidents.length === 0 ? (
-                <tr>
-                  <td colSpan="5">No records found</td>
-                </tr>
+              {drivers.length === 0 ? (
+                <tr><td colSpan="5">Waiting for green flag... (No records)</td></tr>
               ) : (
-                presidents.map(president => (
-                  <tr key={president.id}>
-                    <td>{president.id}</td>
-                    <td>{president.firstname}</td>
-                    <td>{president.lastname}</td>
-                    <td>{president.birthdate || ""}</td>
-                    <td>
-                      <div className="actions">
-                        <button onClick={() => startEdit(president)}>
-                          Edit
-                        </button>
-                        <button onClick={() => handleDelete(president.id)}>
-                          Delete
-                        </button>
-                      </div>
+                drivers.map(d => (
+                  <tr key={d.driver_name}>
+                    <td><strong>{d.driver_name}</strong></td>
+                    <td>{d.first_name} {d.last_name}</td>
+                    <td>{d.country_of_origin}</td>
+                    <td>{d.birthdate}</td>
+                    <td className="actions">
+                      <button onClick={() => startEdit(d)}>Edit</button>
+                      <button onClick={() => handleDelete(d.driver_name)} style={{color:'red'}}>Delete</button>
                     </td>
                   </tr>
                 ))
