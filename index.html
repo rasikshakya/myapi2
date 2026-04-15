@@ -10,31 +10,28 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* Styles remain exactly as you provided for consistency */
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, sans-serif; background: #f5f7fb; color: #222; }
+    body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fb; color: #222; }
     .container { max-width: 1100px; margin: 40px auto; padding: 20px; }
     .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; }
-    h1, h2 { margin-top: 0; }
+    h1, h2 { margin-top: 0; color: #e10600; } /* F1 Red */
     .subtitle { color: #666; margin-bottom: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
-    label { display: block; font-weight: bold; margin-bottom: 6px; }
+    label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; }
     input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
-    button { border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
-    .btn-primary { background: #2563eb; color: white; }
+    button { border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .btn-primary { background: #e10600; color: white; }
     .btn-secondary { background: #e5e7eb; color: #111; }
     .btn-danger { background: #dc2626; color: white; }
     .btn-warning { background: #f59e0b; color: white; }
     .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-    .message { padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; }
+    .message { padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
     .message.success { background: #dcfce7; color: #166534; }
     .message.error { background: #fee2e2; color: #991b1b; }
-    .message.info { background: #dbeafe; color: #1d4ed8; }
-    .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px;}
+    table { width: 100%; border-collapse: collapse; background: white; }
     th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-    th { background: #f9fafb; }
+    th { background: #f9fafb; color: #666; font-size: 12px; text-transform: uppercase; }
     .actions { display: flex; gap: 8px; }
   </style>
 </head>
@@ -42,9 +39,9 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // 1. UPDATE THESE TO YOUR ACTUAL RENDER URL AND CHOSEN SECRET KEY
-    const API_BASE = "https://your-f1-app.onrender.com"; 
-    const AUTH_TOKEN = "your-super-secret-key"; 
+    // --- UPDATE THESE CONSTANTS ---
+    const API_BASE = "https://your-f1-api-url.onrender.com"; 
+    const AUTH_TOKEN = "your_secret_key_here"; // Must match MY_API_KEY in Render
 
     function App() {
       const [drivers, setDrivers] = React.useState([]);
@@ -52,7 +49,7 @@
       const [message, setMessage] = React.useState("");
       const [messageType, setMessageType] = React.useState("info");
       const [search, setSearch] = React.useState("");
-      const [editingName, setEditingName] = React.useState(null);
+      const [editingId, setEditingId] = React.useState(null);
 
       const [form, setForm] = React.useState({
         driver_name: "",
@@ -62,11 +59,13 @@
         birthdate: ""
       });
 
-      React.useEffect(() => {
-        loadDrivers();
-      }, []);
+      React.useEffect(() => { loadDrivers(); }, []);
 
-      const showMessage = (text, type = "info") => { setMessage(text); setMessageType(type); };
+      function showMessage(text, type = "info") {
+        setMessage(text);
+        setMessageType(type);
+        setTimeout(() => setMessage(""), 5000);
+      }
 
       async function loadDrivers() {
         setLoading(true);
@@ -81,27 +80,27 @@
         }
       }
 
-      function handleInputChange(e) {
+      const handleInputChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
-      }
+      };
 
-      function resetForm() {
+      const resetForm = () => {
         setForm({ driver_name: "", first_name: "", last_name: "", country_of_origin: "", birthdate: "" });
-        setEditingName(null);
-      }
+        setEditingId(null);
+      };
 
       async function handleSubmit(e) {
         e.preventDefault();
-        const method = editingName ? "PATCH" : "POST";
-        const url = editingName ? `${API_BASE}/drivers/${editingName}` : `${API_BASE}/drivers`;
+        const method = editingId ? "PATCH" : "POST";
+        const url = editingId ? `${API_BASE}/drivers/${editingId}` : `${API_BASE}/drivers`;
 
         try {
           const res = await fetch(url, {
             method: method,
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${AUTH_TOKEN}` // AUTHENTICATION ADDED HERE
+              "Authorization": `Bearer ${AUTH_TOKEN}`
             },
             body: JSON.stringify(form)
           });
@@ -109,7 +108,7 @@
           const data = await res.json();
           if (!res.ok) throw new Error(data.detail || "Request failed");
 
-          showMessage(editingName ? "Driver updated!" : "Driver created!", "success");
+          showMessage(editingId ? "Driver updated!" : "Driver registered!", "success");
           resetForm();
           loadDrivers();
         } catch (err) {
@@ -118,103 +117,6 @@
       }
 
       async function deleteDriver(name) {
-        if (!window.confirm(`Delete ${name}?`)) return;
+        if (!window.confirm(`Delete driver: ${name}?`)) return;
         try {
-          const res = await fetch(`${API_BASE}/drivers/${name}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${AUTH_TOKEN}` }
-          });
-          if (res.ok) {
-            showMessage("Driver deleted", "success");
-            loadDrivers();
-          }
-        } catch (err) { showMessage("Delete failed", "error"); }
-      }
-
-      const filteredDrivers = drivers.filter(d => 
-        Object.values(d).some(val => String(val).toLowerCase().includes(search.toLowerCase()))
-      );
-
-      return (
-        <div className="container">
-          <div className="card">
-            <h1>🏎️ F1 Driver Manager</h1>
-            <div className="subtitle">FastAPI + Supabase + GitHub Pages</div>
-            <div className="badge">API: {API_BASE}</div>
-          </div>
-
-          <div className="card">
-            <h2>{editingName ? `Edit ${editingName}` : "Add Driver"}</h2>
-            {message && <div className={`message ${messageType}`}>{message}</div>}
-            
-            <form onSubmit={handleSubmit}>
-              <div className="grid">
-                <div>
-                  <label>Driver ID (Unique Name)</label>
-                  <input name="driver_name" value={form.driver_name} onChange={handleInputChange} placeholder="e.g. Lewis Hamilton" disabled={!!editingName} required />
-                </div>
-                <div>
-                  <label>First Name</label>
-                  <input name="first_name" value={form.first_name} onChange={handleInputChange} placeholder="Lewis" required />
-                </div>
-                <div>
-                  <label>Last Name</label>
-                  <input name="last_name" value={form.last_name} onChange={handleInputChange} placeholder="Hamilton" required />
-                </div>
-                <div>
-                  <label>Country</label>
-                  <input name="country_of_origin" value={form.country_of_origin} onChange={handleInputChange} placeholder="United Kingdom" required />
-                </div>
-                <div>
-                  <label>Birthdate</label>
-                  <input type="date" name="birthdate" value={form.birthdate} onChange={handleInputChange} required />
-                </div>
-              </div>
-              <div className="toolbar">
-                <button className="btn-primary" type="submit">{editingName ? "Save Changes" : "Create Driver"}</button>
-                <button className="btn-secondary" type="button" onClick={resetForm}>Clear</button>
-              </div>
-            </form>
-          </div>
-
-          <div className="card">
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-               <h2>Drivers List</h2>
-               <input style={{width: '300px'}} placeholder="Search..." onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Driver ID</th>
-                  <th>Full Name</th>
-                  <th>Country</th>
-                  <th>Birthdate</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDrivers.map(d => (
-                  <tr key={d.driver_name}>
-                    <td><strong>{d.driver_name}</strong></td>
-                    <td>{d.first_name} {d.last_name}</td>
-                    <td>{d.country_of_origin}</td>
-                    <td>{d.birthdate}</td>
-                    <td>
-                      <div className="actions">
-                        <button className="btn-warning" onClick={() => { setEditingName(d.driver_name); setForm(d); }}>Edit</button>
-                        <button className="btn-danger" onClick={() => deleteDriver(d.driver_name)}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-  </script>
-</body>
-</html>
+          const
