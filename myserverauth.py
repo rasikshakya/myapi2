@@ -7,7 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from supabase import create_client, Client
 
-app = FastAPI(title="F1 Driver API - Header Auth")
+app = FastAPI(
+    title="F1 Driver API",
+    docs_url="/docs",    
+    redoc_url="/redoc",  
+    openapi_url="/openapi.json" 
+)
 
 # --- CORS SETTINGS ---
 app.add_middleware(
