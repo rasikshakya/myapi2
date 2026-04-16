@@ -30,7 +30,7 @@ def verify_api_key(authorization: str = Header(None)):
 @app.post("/drivers", status_code=201)
 async def create_driver(driver: DriverCreate, auth: str = Depends(verify_api_key)):
     # Your Supabase insertion logic goes here
-    # Example: response = supabase.table("f1_drivers").insert(driver.dict()).execute()
+    response = supabase.table("f1_drivers").insert(driver.dict()).execute()
     return {"message": f"Driver {driver.driver_name} added to the grid!"}
 
 @app.patch("/drivers/{driver_name}")
