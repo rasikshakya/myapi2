@@ -1,4 +1,4 @@
--- 1. Create the F1 Drivers table:
+**-- 1. Create the F1 Drivers table:**
 
 create table f1_drivers (
   driver_name text primary key, -- Unique ID (e.g., 'LewisHamilton')
@@ -13,7 +13,7 @@ create table f1_drivers (
 
 
 
--- 2. Insert initial seed data:
+**-- 2. Insert initial seed data:**
 
 insert into f1_drivers (driver_name, first_name, last_name, country_of_origin, birthdate)
 values
@@ -26,12 +26,12 @@ values
 
 
 
-  To deploy install: pip install -r requirements.txt
+  **To deploy install:** pip install -r requirements.txt
 
 
-  To run the server command: uvicorn myserverauth:app --host 0.0.0.0 --port 8000 --reload
+  **To run the server command:** uvicorn myserverauth:app --host 0.0.0.0 --port 8000 --reload
 
 
-  environment variables: SUPABASE_URL   SUPABASE_KEY   MY_API_KEY
+  **environment variables:** SUPABASE_URL   SUPABASE_KEY   MY_API_KEY
 
   
