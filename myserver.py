@@ -1,24 +1,23 @@
 import os
 from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 from pydantic import BaseModel
-from supabase import create_client, Client # Ensure this is in your requirements.txt
+from supabase import create_client, Client
 
 app = FastAPI()
 
+# --- SECURITY CONFIG ---
+API_KEY_NAME = "YOUR_SUPER_SECRET_KEY"
+ACTUAL_API_KEY = os.getenv(API_KEY_NAME)
+security = HTTPBearer()
+
 # --- DATABASE CONNECTION ---
-# These must match your Render Environment Variable names exactly
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- SECURITY CONFIG ---
-# This must match the 'Key' column in your Render settings
-API_KEY_NAME = "YOUR_SUPER_SECRET_KEY"
-ACTUAL_API_KEY = os.getenv(API_KEY_NAME)
-
-# --- DATA BLUEPRINTS (Pydantic Models) ---
-# This is what was missing and causing the 500 error!
+# --- DATA MODELS ---
 class DriverCreate(BaseModel):
     driver_name: str
     first_name: str
@@ -26,22 +25,18 @@ class DriverCreate(BaseModel):
     country_of_origin: str
     birthdate: str
 
+# Model for PATCH (all fields are optional)
 class DriverUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     country_of_origin: Optional[str] = None
     birthdate: Optional[str] = None
 
-# --- AUTHENTICATION LOGIC ---
-def verify_api_key(authorization: str = Header(None)):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Missing Authorization Header")
-    
-    expected_format = f"Bearer {ACTUAL_API_KEY}"
-    if authorization != expected_format:
+# --- AUTH LOGIC ---
+def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials.credentials != ACTUAL_API_KEY:
         raise HTTPException(status_code=401, detail="Invalid Authorization Token")
-    
-    return authorization
+    return credentials.credentials
 
 # --- ROUTES ---
 
@@ -51,17 +46,28 @@ async def get_drivers():
     return response.data
 
 @app.post("/drivers", status_code=201)
-async def create_driver(driver: DriverCreate, auth: str = Depends(verify_api_key)):
-    # This line sends the data to your actual database
+async def create_driver(driver: DriverCreate, token: str = Depends(verify_api_key)):
     response = supabase.table("f1_drivers").insert(driver.dict()).execute()
-    return {"message": f"Driver {driver.driver_name} added to the grid!"}
+    return {"message": f"Driver {driver.driver_name} added!"}
 
+# PUT: Full Replacement
+@app.put("/drivers/{driver_name}")
+async def replace_driver(driver_name: str, driver: DriverCreate, token: str = Depends(verify_api_key)):
+    response = supabase.table("f1_drivers").update(driver.dict()).eq("driver_name", driver_name).execute()
+    return {"message": f"Driver {driver_name} fully replaced", "data": response.data}
+
+# PATCH: Partial Update (The route you were looking for!)
 @app.patch("/drivers/{driver_name}")
-async def update_driver(driver_name: str, updates: DriverUpdate, auth: str = Depends(verify_api_key)):
-    response = supabase.table("f1_drivers").update(updates.dict(exclude_unset=True)).eq("driver_name", driver_name).execute()
-    return {"message": f"Updated details for {driver_name}"}
+async def update_driver(driver_name: str, updates: DriverUpdate, token: str = Depends(verify_api_key)):
+    # exclude_unset=True ensures we only send fields the user actually provided
+    data_to_update = updates.dict(exclude_unset=True)
+    if not data_to_update:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+        
+    response = supabase.table("f1_drivers").update(data_to_update).eq("driver_name", driver_name).execute()
+    return {"message": f"Driver {driver_name} partially updated", "data": response.data}
 
 @app.delete("/drivers/{driver_name}")
-async def delete_driver(driver_name: str, auth: str = Depends(verify_api_key)):
+async def delete_driver(driver_name: str, token: str = Depends(verify_api_key)):
     response = supabase.table("f1_drivers").delete().eq("driver_name", driver_name).execute()
-    return {"message": f"Driver {driver_name} removed from the registry"}
+    return {"message": f"Driver {driver_name} removed"}
