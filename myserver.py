@@ -6,6 +6,13 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"], 
+)
 
 # --- SECURITY CONFIG ---
 API_KEY_NAME = "YOUR_SUPER_SECRET_KEY"
