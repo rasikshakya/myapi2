@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import datetime
 
 BASE_URL = "https://myapi2-1-ye2f.onrender.com"
 
@@ -42,7 +43,15 @@ with tab2:
             l_name = st.text_input("Last Name")
             country = st.text_input("Country")
 
-        b_day = st.date_input("Birthdate", value=None)
+        min_date = datetime.time(1950, 1, 1)
+        max_date = datetime.time.today()
+
+        b_day = st.date_input(
+            "Birthdate", 
+            value=datetime.date(1995, 1, 1),
+            min_value=min_date,
+            max_value=max_date
+        )
         
         if st.form_submit_button("Add to Grid"):
             payload = {
