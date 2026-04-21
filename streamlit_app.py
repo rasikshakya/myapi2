@@ -46,12 +46,12 @@ with tab2:
         
         if st.form_submit_button("Add to Grid"):
             payload = {
-                "driver_name": d_id,
-                "first_name": f_name,
-                "last_name": l_name,
-                "country_of_origin": country
-                "birthdate": str(b_day)
-            }
+            "driver_name": d_id,
+            "first_name": f_name,
+            "last_name": l_name,
+            "country_of_origin": country, # <--- Check if this comma is missing!
+            "birthdate": str(b_day)       # The error happened here because of the line above
+        }
             res = requests.post(f"{BASE_URL}/drivers", json=payload, headers=HEADERS)
             if res.status_code in [200, 201]:
                 st.success(f"Added {f_name} successfully!")
