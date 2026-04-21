@@ -41,6 +41,8 @@ with tab2:
         with col2:
             l_name = st.text_input("Last Name")
             country = st.text_input("Country")
+
+        b_day = st.date_input("Birthdate", value=None)
         
         if st.form_submit_button("Add to Grid"):
             payload = {
@@ -48,6 +50,7 @@ with tab2:
                 "first_name": f_name,
                 "last_name": l_name,
                 "country_of_origin": country
+                "birthdate": str(b_day)
             }
             res = requests.post(f"{BASE_URL}/drivers", json=payload, headers=HEADERS)
             if res.status_code in [200, 201]:
