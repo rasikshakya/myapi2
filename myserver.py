@@ -53,6 +53,16 @@ async def get_drivers():
     response = supabase.table("f1_drivers").select("*").execute()
     return response.data
 
+@app.get("/drivers/{driver_name}", response_model=dict)
+def get_driver_by_id(driver_name: str):
+    # Query Supabase for the specific driver name
+    res = supabase.table("drivers").select("*").eq("driver_name", driver_name).execute()
+    
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Driver not found in the paddock.")
+    
+    return res.data[0]
+
 @app.post("/drivers", status_code=201)
 async def create_driver(driver: DriverCreate, token: str = Depends(verify_api_key)):
     response = supabase.table("f1_drivers").insert(driver.dict()).execute()
