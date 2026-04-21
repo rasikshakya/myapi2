@@ -3,7 +3,7 @@ import requests
 
 BASE_URL = "https://myapi2-1-ye2f.onrender.com"
 
-HEADERS = {"Authorization": "Bearer scuderiaferrari"} 
+HEADERS = {"Authorization": f"Bearer {st.secrets['API_KEY']}"} 
 
 st.set_page_config(page_title="F1 Grid Manager", layout="wide")
 st.title("🏎️ F1 Driver Registry (SCRUD)")
