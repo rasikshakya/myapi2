@@ -63,6 +63,11 @@ def get_driver_by_id(driver_name: str):
     
     return res.data[0]
 
+@app.get("/drivers/country/{country}")
+def get_drivers_by_country(country: str):
+    res = supabase.table("drivers").select("*").ilike("country_of_origin", f"%{country}%").execute()
+    return res.data
+
 @app.post("/drivers", status_code=201)
 async def create_driver(driver: DriverCreate, token: str = Depends(verify_api_key)):
     response = supabase.table("f1_drivers").insert(driver.dict()).execute()
